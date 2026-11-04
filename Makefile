@@ -59,6 +59,9 @@ CC = $(TOOLPREFIX)gcc
 LD = $(TOOLPREFIX)ld
 OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
+ifndef GDB
+GDB = $(shell if which gdb-multiarch >/dev/null 2>&1; then echo 'gdb-multiarch'; else echo 'gdb'; fi)
+endif
 
 # Deterministic builds.
 DETFLAGS = -ffile-prefix-map=$(CURDIR)=.
@@ -163,6 +166,7 @@ clean:
 	mkfs/mkfs .gdbinit \
         $U/usys.S \
 	$(UPROGS)
+	rm -rf .gdb
 
 # try to generate a unique GDB port
 GDBPORT = $(shell expr `id -u` % 5000 + 25000)
@@ -184,12 +188,23 @@ QEMUOPTS += -serial mon:stdio
 qemu: check-qemu-version $K/kernel fs.img
 	$(QEMU) $(QEMUOPTS)
 
-.gdbinit: .gdbinit.tmpl-riscv
-	sed "s/:1234/:$(GDBPORT)/" < $^ > $@
+.gdb:
+	@mkdir -p .gdb
 
-qemu-gdb: $K/kernel .gdbinit fs.img
-	@echo "*** Now run 'gdb' in another window." 1>&2
+.gdb/.gdbinit: | .gdb
+	@echo "set confirm off" > $@
+	@echo "set architecture riscv:rv64" >> $@
+	@echo "target remote 127.0.0.1:$(GDBPORT)" >> $@
+	@echo "symbol-file kernel/kernel" >> $@
+	@echo "set disassemble-next-line auto" >> $@
+	@echo "set riscv use-compressed-breakpoints yes" >> $@
+
+qemu-gdb: $K/kernel .gdb/.gdbinit fs.img
+	@echo "*** Now run 'make gdb' in another window." 1>&2
 	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
+
+gdb: .gdb/.gdbinit
+	$(GDB) -x .gdb/.gdbinit
 
 print-gdbport:
 	@echo $(GDBPORT)

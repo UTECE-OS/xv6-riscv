@@ -109,15 +109,15 @@ Contains `xv6-simple-unix-like-teaching-OS.pdf` (the official textbook by MIT fa
   ```
 
 ### B. Debugging with GDB
-* **Start QEMU frozen and waiting for a GDB connection:**
+* **Terminal 1: Start QEMU in debugging mode (paused waiting for GDB):**
   ```bash
   make qemu-gdb
   ```
-* In a separate terminal, attach the multi-architecture debugger:
+* **Terminal 2: Launch and attach GDB automatically:**
   ```bash
-  gdb-multiarch
+  make gdb
   ```
-  *(The repository includes a `.gdbinit` configuration configured to connect to `localhost:26000`).*
+  *(This generates `.gdb/.gdbinit` on-the-fly, binds to the dynamically assigned QEMU port, loads `kernel/kernel` symbols, and attaches to the running OS).*
 
 ### C. Exiting xv6 (Shutting Down QEMU)
 Since xv6 operates over a virtual serial console without a graphical window (`-nographic` flag):

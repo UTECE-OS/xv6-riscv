@@ -9,6 +9,7 @@ _*
 /kernel/kernel
 /user/usys.S
 .gdbinit
+.gdb/
 TAGS
 
 docs/*
