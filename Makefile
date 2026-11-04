@@ -151,8 +151,8 @@ UPROGS=\
 	$U/_dorphan\
 	$U/_sync\
 
-fs.img: mkfs/mkfs README $(UPROGS)
-	mkfs/mkfs fs.img README $(UPROGS)
+fs.img: mkfs/mkfs user/WELCOME $(UPROGS)
+	mkfs/mkfs fs.img user/WELCOME $(UPROGS)
 
 -include kernel/*.d user/*.d
 

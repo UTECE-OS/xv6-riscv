@@ -1,0 +1,6 @@
+Welcome to xv6-riscv!
+University of Tehran - Operating Systems Lab
+
+xv6 is a Unix Version 6 re-implementation for multi-core RISC-V.
+Available commands: ls, cat, echo, grep, mkdir, rm, wc, kill, etc.
+To exit QEMU, press Ctrl+A then X.

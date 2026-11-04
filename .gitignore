@@ -10,3 +10,6 @@ _*
 /user/usys.S
 .gdbinit
 TAGS
+
+docs/*
+!docs/xv6-simple-unix-like-teaching-OS.pdf
