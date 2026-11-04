@@ -81,7 +81,7 @@ void
 uartinit(void)
 {
   uartinitone(&uarts[0], "uart0");
-  uartinitone(&uarts[1], "uart1");
+  // uartinitone(&uarts[1], "uart1");
 }
 
 // transmit buf[] to the uart. it blocks if the

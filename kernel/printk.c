@@ -23,7 +23,7 @@ static struct {
 static void
 prputc(int c)
 {
-  uartputc_sync(1, c);
+  uartputc_sync(0, c);
 }
 
 static char digits[] = "0123456789abcdef";
