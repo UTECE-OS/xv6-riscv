@@ -219,3 +219,13 @@ check-qemu-version:
 .PHONY: fmt
 fmt:
 	clang-format -i $(wildcard kernel/*.[ch] user/*.[ch] mkfs/*.c)
+
+# Automated testing targets
+ARGS ?= usertests
+test:
+	python3 tests/test-xv6.py $(ARGS)
+
+test-quick:
+	python3 tests/test-xv6.py -q usertests
+
+.PHONY: test test-quick

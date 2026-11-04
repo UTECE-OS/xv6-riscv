@@ -30,8 +30,8 @@ sudo apt-get install -y git build-essential gdb-multiarch qemu-system-misc qemu-
 ├── user/          # User-space applications, runtime library, and system tests
 ├── mkfs/          # Host-side file system formatter and disk image builder
 ├── docs/          # Textbook (PDF), architectural documentation, and engineering logs
-├── Makefile       # Compilation rules, dependencies, and QEMU configuration
-└── test-xv6.py    # Automated test runner and validation script
+├── tests/         # Automated test runner scripts (Python)
+└── Makefile       # Compilation rules, dependencies, and QEMU configuration
 ```
 
 ### Detailed Component Breakdown:
@@ -126,17 +126,37 @@ Since xv6 operates over a virtual serial console without a graphical window (`-n
 3. Press **`X`**.
 
 ### D. Automated Test Execution
-* **Quick validation suite (recommended, completes in ~15-20s):**
+Automated testing can be executed either via convenient `make` shortcuts or by running the Python test runner directly:
+
+#### 1. Using Make Targets (Recommended)
+* **Run quick validation suite (~15-20s):**
   ```bash
-  python3 test-xv6.py -q usertests
+  make test-quick
   ```
-* **Run a single specific test (e.g., `copyin` or `forktest`):**
+* **Run full test suite (~3-5 minutes):**
   ```bash
-  python3 test-xv6.py copyin
+  make test
   ```
-* **Full stress-test suite (~3-5 minutes):**
+* **Run a specific test with custom arguments (e.g., `copyin`, `linktest`, `forktest`):**
   ```bash
-  python3 test-xv6.py usertests
+  make test ARGS="copyin"
+  ```
+* **Pass custom flags via Make (e.g., `-q` with specific test regex):**
+  ```bash
+  make test ARGS="-q usertests"
+  ```
+
+#### 2. Using Python Directly
+The test runner can be launched from the repository root or directly from within the `tests/` directory:
+* **From repository root:**
+  ```bash
+  python3 tests/test-xv6.py copyin
+  python3 tests/test-xv6.py -q usertests
+  python3 tests/test-xv6.py usertests
+  ```
+* **From inside `tests/` directory:**
+  ```bash
+  cd tests && python3 test-xv6.py copyin
   ```
 
 ---
