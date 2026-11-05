@@ -1,5 +1,6 @@
 K=kernel
 U=user
+O=build
 
 OBJS = \
   $K/entry.o \
@@ -29,6 +30,8 @@ OBJS = \
   $K/kernelvec.o \
   $K/plic.o \
   $K/virtio_disk.o
+
+KOBJS = $(addprefix $(O)/, $(OBJS))
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
@@ -93,71 +96,83 @@ endif
 
 LDFLAGS = -z max-page-size=4096
 
-$K/kernel: $(OBJS) $K/kernel.ld
-	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $K/kernel $(OBJS) 
-	$(OBJDUMP) -S $K/kernel > $K/kernel.asm
-	$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym
+$(O)/kernel $(O)/user $(O)/mkfs:
+	@mkdir -p $@
 
-$K/%.o: $K/%.S
+$(O)/$K/kernel: $(KOBJS) $K/kernel.ld | $(O)/kernel
+	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $@ $(KOBJS) 
+	$(OBJDUMP) -S $@ > $(O)/$K/kernel.asm
+	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $(O)/$K/kernel.sym
+
+# Compatibility target
+kernel/kernel: $(O)/$K/kernel
+
+$(O)/$K/%.o: $K/%.c | $(O)/kernel
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(O)/$K/%.o: $K/%.S | $(O)/kernel
 	$(CC) -march=rv64gc -g $(DETFLAGS) -c -o $@ $<
 
 tags: $(OBJS)
 	etags kernel/*.S kernel/*.c
 
-ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
+ULIB = $(O)/$U/ulib.o $(O)/$U/usys.o $(O)/$U/printf.o $(O)/$U/umalloc.o
 
-_%: %.o $(ULIB) $U/user.ld
+$(O)/$U/_%: $(O)/$U/%.o $(ULIB) $U/user.ld | $(O)/user
 	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $< $(ULIB)
-	$(OBJDUMP) -S $@ > $*.asm
-	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
+	$(OBJDUMP) -S $@ > $(O)/$U/$*.asm
+	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $(O)/$U/$*.sym
 
-$U/usys.S : $U/usys.pl
-	perl $U/usys.pl > $U/usys.S
+$(O)/$U/%.o: $U/%.c | $(O)/user
+	$(CC) $(CFLAGS) -c -o $@ $<
 
-$U/usys.o : $U/usys.S
-	$(CC) $(CFLAGS) -c -o $U/usys.o $U/usys.S
+$(O)/$U/usys.S : $U/usys.pl | $(O)/user
+	perl $U/usys.pl > $@
 
-$U/_forktest: $U/forktest.o $(ULIB)
+$(O)/$U/usys.o : $(O)/$U/usys.S | $(O)/user
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(O)/$U/_forktest: $(O)/$U/forktest.o $(ULIB) | $(O)/user
 	# forktest has less library code linked in - needs to be small
 	# in order to be able to max out the proc table.
-	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_forktest $U/forktest.o $U/ulib.o $U/usys.o
-	$(OBJDUMP) -S $U/_forktest > $U/forktest.asm
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $(O)/$U/forktest.o $(O)/$U/ulib.o $(O)/$U/usys.o
+	$(OBJDUMP) -S $@ > $(O)/$U/forktest.asm
 
-mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
-	gcc -Wno-unknown-attributes -I. -o mkfs/mkfs mkfs/mkfs.c
+$(O)/mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h | $(O)/mkfs
+	gcc -Wno-unknown-attributes -I. -o $@ mkfs/mkfs.c
 
 # Prevent deletion of intermediate files, e.g. cat.o, after first build, so
 # that disk image changes after first build are persistent until clean.  More
 # details:
 # http://www.gnu.org/software/make/manual/html_node/Chained-Rules.html
-.PRECIOUS: %.o
+.PRECIOUS: $(O)/$K/%.o $(O)/$U/%.o
 
 UPROGS=\
-	$U/_cat\
-	$U/_echo\
-	$U/_forktest\
-	$U/_grep\
-	$U/_init\
-	$U/_kill\
-	$U/_ln\
-	$U/_ls\
-	$U/_mkdir\
-	$U/_rm\
-	$U/_sh\
-	$U/_stressfs\
-	$U/_usertests\
-	$U/_grind\
-	$U/_wc\
-	$U/_zombie\
-	$U/_logstress\
-	$U/_forphan\
-	$U/_dorphan\
-	$U/_sync\
+	$(O)/$U/_cat\
+	$(O)/$U/_echo\
+	$(O)/$U/_forktest\
+	$(O)/$U/_grep\
+	$(O)/$U/_init\
+	$(O)/$U/_kill\
+	$(O)/$U/_ln\
+	$(O)/$U/_ls\
+	$(O)/$U/_mkdir\
+	$(O)/$U/_rm\
+	$(O)/$U/_sh\
+	$(O)/$U/_stressfs\
+	$(O)/$U/_usertests\
+	$(O)/$U/_grind\
+	$(O)/$U/_wc\
+	$(O)/$U/_zombie\
+	$(O)/$U/_logstress\
+	$(O)/$U/_forphan\
+	$(O)/$U/_dorphan\
+	$(O)/$U/_sync\
 
-fs.img: mkfs/mkfs user/WELCOME $(UPROGS)
-	mkfs/mkfs fs.img user/WELCOME $(UPROGS)
+fs.img: $(O)/mkfs/mkfs user/WELCOME $(UPROGS)
+	$(O)/mkfs/mkfs fs.img user/WELCOME $(UPROGS)
 
--include kernel/*.d user/*.d
+-include $(O)/$K/*.d $(O)/$U/*.d
 
 clean: 
 	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
@@ -166,7 +181,7 @@ clean:
 	mkfs/mkfs .gdbinit \
         $U/usys.S \
 	$(UPROGS)
-	rm -rf .gdb
+	rm -rf $(O) .gdb
 
 # try to generate a unique GDB port
 GDBPORT = $(shell expr `id -u` % 5000 + 25000)
@@ -178,14 +193,14 @@ ifndef CPUS
 CPUS := 3
 endif
 
-QEMUOPTS = -machine virt -bios none -kernel $K/kernel -m 128M -smp $(CPUS) -nographic
+QEMUOPTS = -machine virt -bios none -kernel $(O)/$K/kernel -m 128M -smp $(CPUS) -nographic
 QEMUOPTS += -global virtio-mmio.force-legacy=false
 QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 
 QEMUOPTS += -serial mon:stdio
 
-qemu: check-qemu-version $K/kernel fs.img
+qemu: check-qemu-version $(O)/$K/kernel fs.img
 	$(QEMU) $(QEMUOPTS)
 
 .gdb:
@@ -195,11 +210,11 @@ qemu: check-qemu-version $K/kernel fs.img
 	@echo "set confirm off" > $@
 	@echo "set architecture riscv:rv64" >> $@
 	@echo "target remote 127.0.0.1:$(GDBPORT)" >> $@
-	@echo "symbol-file kernel/kernel" >> $@
+	@echo "symbol-file $(O)/$K/kernel" >> $@
 	@echo "set disassemble-next-line auto" >> $@
 	@echo "set riscv use-compressed-breakpoints yes" >> $@
 
-qemu-gdb: $K/kernel .gdb/.gdbinit fs.img
+qemu-gdb: $(O)/$K/kernel .gdb/.gdbinit fs.img
 	@echo "*** Now run 'make gdb' in another window." 1>&2
 	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
 

@@ -10,6 +10,7 @@ _*
 /user/usys.S
 .gdbinit
 .gdb/
+build/
 TAGS
 
 docs/*
